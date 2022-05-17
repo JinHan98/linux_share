@@ -26,7 +26,7 @@ public class Condition2 {                                                   // M
      */
     public Condition2(Lock conditionLock) {
 	    this.conditionLock = conditionLock;
-        CV_WaitThread_List = new Vector<KThread>();  // init conditional waiting set!!
+        CV_WaitThread_List = new Vector();  // init conditional waiting set!!
     }
 
     /**
@@ -59,8 +59,7 @@ public class Condition2 {                                                   // M
 
         boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
         if(CV_WaitThread_List.size() !=0) {                             // Conditional Waiting Set 에 대기 중인 커널 쓰레드들 확인
-            KThread a=CV_WaitThread_List.get(0);
-            a.ready();   // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
+            ((KThread)CV_WaitThread_List.firstElement()).ready();   // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
             CV_WaitThread_List.removeElementAt(0);        
         }
         Machine.interrupt().restore(intStatus);           // 인터럽트 On

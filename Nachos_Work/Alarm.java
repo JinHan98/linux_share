@@ -63,7 +63,7 @@ public class Alarm {
 
         while(WaitQ.size() > i){                            //  Wating Queue 에 존재하는 모든 쓰레드들 확인
             SelfWaitThread tmp;
-            SelfWaitThread tmp = new SelfWaitThread(WaitQ.get(0).getSelfWaitThread(),WaitQ.get(0).getSelfWaitTime());   // Wating Queue 에 존재하는 i 번째 쓰레드 가져오기 (SelfWaitThread tmp 활용)
+            tmp = new SelfWaitThread(WaitQ.get(0).getSelfWaitThread(),WaitQ.get(0).getSelfWaitTime());   // Wating Queue 에 존재하는 i 번째 쓰레드 가져오기 (SelfWaitThread tmp 활용)
             
             if(tmp.getSelfWaitTime()<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
                tmp.getSelfWaitThread().ready();             // 해당 쓰레드를 준비 상태로 전환시킴 (Context Switch)
