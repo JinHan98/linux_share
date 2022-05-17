@@ -4,7 +4,7 @@ import java.util.Vector;
 
 //----- import 문 -------
 import nachos.machine.*;
-/* 채우세요 */            
+impott java.util.*;         
 //-----------------------                        
 
 
@@ -22,8 +22,8 @@ public class Alarm {
      * alarm.
      */
 
-    private Vector<E> WaitQ = null;                  // asserted Thread 들에 대한 Wating Queue
-                                                  // SelfWaitThread 를 해당 Vector 에 저장할 것입니다.
+    private Vector WaitQ = null;                  // asserted Thread 들에 대한 Wating Queue
+                                                // SelfWaitThread 를 해당 Vector 에 저장할 것입니다.
 
     public class SelfWaitThread {                 // 'waitUntil(long)' 메소드를 호출한, 쓰레드 클래스
         private KThread waitThread;/* 채우세요 */                            // 대기 상태에 있는 쓰레드에 정의 (힌트 : KThread)
@@ -42,7 +42,7 @@ public class Alarm {
     } 
     
     public Alarm() {         
-        java.util.PriorityQueue<WaitThread> WaitQ=new java.util.PriorityQueue<WaitThread>(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
+        WaitQ=new PriorityQueue<WaitThread>(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
         Machine.timer().setInterruptHandler(new Runnable() {
                 public void run() { timerInterrupt(); }
             });
@@ -72,7 +72,7 @@ public class Alarm {
             }
             i++;                                          
         }
-        Machine.interrupt().restore(intStatus);             // 인터럽트 On
+        Machine.interrupt().restore(off);             // 인터럽트 On
         KThread.currentThread().yield();                    // 준비 상태로 Context Switch 된 쓰레드를 Run
     }
 
@@ -94,11 +94,11 @@ public class Alarm {
     public void waitUntil(long x) {                  // x 라는 시간 동안 대기하는 쓰레드 정의하는 메소드
         
         long wakeTime = Machine.timer().getTime() + x;     // 대기 상태가 종료되는 시간을 구함
-        boolean intStatus=Machine.interrupt.disable();     // 인터럽트 Off
+        boolean off=Machine.interrupt.disable();     // 인터럽트 Off
         SelfWaitThread tmp = new SelfWaitThread(KThread.currentThread(),wakeTime);     // 대기 상태로 전환된 쓰레드 정의 (SelfWaitThread 객체 생성)
-        WaitQ.add(new WaitThread(wakeTime,KThread.currentThread()));                   // waitUntil 메소드를 호출한 쓰레드를 Waiting Queue 에 저장 (FIFO 방식)
+        WaitQ.add(tmp);    // waitUntil 메소드를 호출한 쓰레드를 Waiting Queue 에 저장 (FIFO 방식)
         KThread.sleep();                                    // 해당 쓰레드를 대기 상태로 진입 시킴(힌트 : threads/KThread.java 파일 참고)
-        Machine.interrupt().restore(intStatus);            // 인터럽트 On
+        Machine.interrupt().restore(off);            // 인터럽트 On
         
     }
 

@@ -42,7 +42,7 @@ public class Condition2 {                                                   // M
  
         ////////////////////////////////////////////////////////////
         boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
-        waitQueue.waitForAccess(KThread.currentThread());                                                  // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
+        CV_WaitThread_List.waitForAccess(KThread.currentThread());                                                  // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
         KThread.currentThread().sleep();                                // 현재 실행 상태의 쓰레드를 대기 상태로 전환시킴 
         Machine.interrupt().restore(intStatus);                                                 // 인터럽트 다시 On
         //////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@ public class Condition2 {                                                   // M
 
         boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
         if(CV_WaitThread_List.size() !=0) {                             // Conditional Waiting Set 에 대기 중인 커널 쓰레드들 확인
-            waitQueue.nextThread().ready();      // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
+            CV_WaitThread_List.nextThread().ready();      // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
             CV_WaitThread_List.removeElementAt(0);        
         }
         Machine.interrupt().restore(intStatus);           // 인터럽트 On
@@ -72,7 +72,7 @@ public class Condition2 {                                                   // M
     public void wakeAll() {                            // 조건 변수 상에서 대기 중인 모든 커널 쓰레드들을 Wake Up 시키는 메소드 정의
 	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        while(waitQueue.nextThread()!=null)
+        while(CV_WaitThread_List.nextThread()!=null)
             wake();          // Conditional Waiting Set 에 존재하는 모든 커널 쓰레드들 Wake Up 시키기 (위에서 정의한 wake() 함수 사용할 것)
                                         
     }
