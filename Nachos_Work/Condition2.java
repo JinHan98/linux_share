@@ -42,7 +42,7 @@ public class Condition2 {                                                   // M
  
         ////////////////////////////////////////////////////////////
         boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
-        CV_WaitThread_List.waitForAccess(KThread.currentThread());                                                  // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
+        CV_WaitThread_List.add(KThread.currentThread()); // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
         KThread.currentThread().sleep();                                // 현재 실행 상태의 쓰레드를 대기 상태로 전환시킴 
         Machine.interrupt().restore(intStatus);                                                 // 인터럽트 다시 On
         //////////////////////////////////////////////////////////////

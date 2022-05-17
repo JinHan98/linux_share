@@ -42,7 +42,7 @@ public class Alarm {
     } 
     
     public Alarm() {         
-        WaitQ=new Vector(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
+        WaitQ=new Vector<SelfWaitThread>(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
         Machine.timer().setInterruptHandler(new Runnable() {
                 public void run() { timerInterrupt(); }
             });
