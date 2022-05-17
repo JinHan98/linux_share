@@ -2,6 +2,7 @@ package nachos.threads;
 
 import java.util.Vector;
 
+
 //----- import 문 -------
 import nachos.machine.*;
 import java.util.*;         
@@ -26,7 +27,7 @@ public class Alarm {
                                                 // SelfWaitThread 를 해당 Vector 에 저장할 것입니다.
 
     public class SelfWaitThread {                 // 'waitUntil(long)' 메소드를 호출한, 쓰레드 클래스
-        private KThread waitThread;/* 채우세요 */                            // 대기 상태에 있는 쓰레드에 정의 (힌트 : KThread)
+        private KThread waitThread=null;               // 대기 상태에 있는 쓰레드에 정의 (힌트 : KThread)
         private long waitTime = 0;                // 쓰레드의 대기 시간에 대한 정의
 
         public SelfWaitThread(KThread thread, long time) {   // 대기 상태로 전환된 쓰레드 정의 (대기 시간 및 대상 쓰레드)
@@ -63,11 +64,11 @@ public class Alarm {
 
         while(WaitQ.size() > i){                            //  Wating Queue 에 존재하는 모든 쓰레드들 확인
             SelfWaitThread tmp;
-            tmp = new SelfWaitThread(WaitQ.get(0).getSelfWaitThread(),WaitQ.get(0).getSelfWaitTime());   // Wating Queue 에 존재하는 i 번째 쓰레드 가져오기 (SelfWaitThread tmp 활용)
+            tmp = (SelfWaitThread)WaitQ.elementAt(i);
             
             if(tmp.getSelfWaitTime()<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
                tmp.getSelfWaitThread().ready();             // 해당 쓰레드를 준비 상태로 전환시킴 (Context Switch)
-               WaitQ.remove(0);                              // 해당 쓰레드를 Waiting Queue 에서 제거시킴
+               WaitQ.removeElementAt(0);                              // 해당 쓰레드를 Waiting Queue 에서 제거시킴
                if(i != 0)i--;
             }
             i++;                                          
@@ -97,7 +98,7 @@ public class Alarm {
         boolean off=Machine.interrupt().disable();     // 인터럽트 Off
         SelfWaitThread tmp = new SelfWaitThread(KThread.currentThread(),wakeTime);     // 대기 상태로 전환된 쓰레드 정의 (SelfWaitThread 객체 생성)
         WaitQ.add(tmp);    // waitUntil 메소드를 호출한 쓰레드를 Waiting Queue 에 저장 (FIFO 방식)
-        KThread.sleep();                                    // 해당 쓰레드를 대기 상태로 진입 시킴(힌트 : threads/KThread.java 파일 참고)
+        tmp.getSelfWaitThread().sleep();                                    // 해당 쓰레드를 대기 상태로 진입 시킴(힌트 : threads/KThread.java 파일 참고)
         Machine.interrupt().restore(off);            // 인터럽트 On
         
     }

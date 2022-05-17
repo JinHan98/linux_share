@@ -72,7 +72,7 @@ public class Condition2 {                                                   // M
     public void wakeAll() {                            // 조건 변수 상에서 대기 중인 모든 커널 쓰레드들을 Wake Up 시키는 메소드 정의
 	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        while(CV_WaitThread_List.get(0)!=null)
+        while(CV_WaitThread_List.size()=0)
             wake();          // Conditional Waiting Set 에 존재하는 모든 커널 쓰레드들 Wake Up 시키기 (위에서 정의한 wake() 함수 사용할 것)
                                         
     }
