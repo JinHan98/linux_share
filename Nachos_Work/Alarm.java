@@ -4,7 +4,7 @@ import java.util.Vector;
 
 //----- import 문 -------
 import nachos.machine.*;
-impott java.util.*;         
+import java.util.*;         
 //-----------------------                        
 
 
@@ -42,7 +42,7 @@ public class Alarm {
     } 
     
     public Alarm() {         
-        WaitQ=new PriorityQueue<WaitThread>(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
+        WaitQ=new Vector(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
         Machine.timer().setInterruptHandler(new Runnable() {
                 public void run() { timerInterrupt(); }
             });
@@ -65,9 +65,9 @@ public class Alarm {
             SelfWaitThread tmp;
             tmp=WaitQ.get(i);                                // Wating Queue 에 존재하는 i 번째 쓰레드 가져오기 (SelfWaitThread tmp 활용)
             
-            if(WaitQ.get(i).getSelfWaitTime<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
+            if(tmp.getSelfWaitTime<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
                tmp.getSelfWaitThread().ready();             // 해당 쓰레드를 준비 상태로 전환시킴 (Context Switch)
-               WaitQ.pop();                               // 해당 쓰레드를 Waiting Queue 에서 제거시킴
+               WaitQ.remove(0);                              // 해당 쓰레드를 Waiting Queue 에서 제거시킴
                if(i != 0)i--;
             }
             i++;                                          
