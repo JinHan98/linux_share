@@ -290,7 +290,7 @@ public class KThread {                                // Nachos 커널 쓰레드
         boolean off=Machine.interrupt().disable();                                  // 인터럽트 끄기
         joined_thread.add(0, currentThread);                                  // 현재 실행 상태의 커널 쓰레드를 joined_set 에 저장 (FIFO 방식으로 저장)               
         currentThread.sleep();                             //  현재 실행 상태의 커널 쓰레드를 대기 상태로 전환
-        Machine.interrupt().restore(intStatus);            // 인터럽트 켜기  
+        Machine.interrupt().restore(off);            // 인터럽트 켜기  
         //---------------------------------------------------------------------------------------------------------//
     }
 

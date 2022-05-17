@@ -65,7 +65,7 @@ public class Alarm {
             SelfWaitThread tmp;
             tmp=WaitQ.get(i);                                // Wating Queue 에 존재하는 i 번째 쓰레드 가져오기 (SelfWaitThread tmp 활용)
             
-            if(tmp.getSelfWaitTime<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
+            if(tmp.getSelfWaitTime()<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
                tmp.getSelfWaitThread().ready();             // 해당 쓰레드를 준비 상태로 전환시킴 (Context Switch)
                WaitQ.remove(0);                              // 해당 쓰레드를 Waiting Queue 에서 제거시킴
                if(i != 0)i--;
@@ -94,7 +94,7 @@ public class Alarm {
     public void waitUntil(long x) {                  // x 라는 시간 동안 대기하는 쓰레드 정의하는 메소드
         
         long wakeTime = Machine.timer().getTime() + x;     // 대기 상태가 종료되는 시간을 구함
-        boolean off=Machine.interrupt.disable();     // 인터럽트 Off
+        boolean off=Machine.interrupt().disable();     // 인터럽트 Off
         SelfWaitThread tmp = new SelfWaitThread(KThread.currentThread(),wakeTime);     // 대기 상태로 전환된 쓰레드 정의 (SelfWaitThread 객체 생성)
         WaitQ.add(tmp);    // waitUntil 메소드를 호출한 쓰레드를 Waiting Queue 에 저장 (FIFO 방식)
         KThread.sleep();                                    // 해당 쓰레드를 대기 상태로 진입 시킴(힌트 : threads/KThread.java 파일 참고)

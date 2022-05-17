@@ -26,7 +26,7 @@ public class Condition2 {                                                   // M
      */
     public Condition2(Lock conditionLock) {
 	    this.conditionLock = conditionLock;
-        CV_WaitThread_List = new Vector();  // init conditional waiting set!!
+        CV_WaitThread_List = new Vector<KThread>();  // init conditional waiting set!!
     }
 
     /**
