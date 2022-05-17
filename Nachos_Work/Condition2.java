@@ -38,13 +38,13 @@ public class Condition2 {                                                   // M
     public void sleep() {                                           // 현재 실행중인 커널 쓰레드를 조건 변수 상에서, 대기 상태로 전환시키는 메소드 정의
 	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 	    
-        /* 채우세요 */                                        // 조건 변수에 대한 Lock (Condition Lock) Release (힌트 : threads/Lock.java 참고)
+        conditionLock.release();                                      // 조건 변수에 대한 Lock (Condition Lock) Release (힌트 : threads/Lock.java 참고)
  
         ////////////////////////////////////////////////////////////
         boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
-        /* 채우세요 */                                                  // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
+        waitQueue.waitForAccess(KThread.currentThread());                                                  // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
         KThread.currentThread().sleep();                                // 현재 실행 상태의 쓰레드를 대기 상태로 전환시킴 
-        /* 채우세요 */                                                  // 인터럽트 다시 On
+        Machine.interrupt().restore(intStatus);                                                 // 인터럽트 다시 On
         //////////////////////////////////////////////////////////////
 
 	    conditionLock.acquire();                             // 조건 변수에 대한 Lock (Condition Lock) Acquire
@@ -59,7 +59,7 @@ public class Condition2 {                                                   // M
 
         boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
         if(CV_WaitThread_List.size() !=0) {                             // Conditional Waiting Set 에 대기 중인 커널 쓰레드들 확인
-            /* 채우세요 */       // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
+            waitQueue.nextThread().ready();      // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
             CV_WaitThread_List.removeElementAt(0);        
         }
         Machine.interrupt().restore(intStatus);           // 인터럽트 On
@@ -72,7 +72,8 @@ public class Condition2 {                                                   // M
     public void wakeAll() {                            // 조건 변수 상에서 대기 중인 모든 커널 쓰레드들을 Wake Up 시키는 메소드 정의
 	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        /* 채우세요 */           // Conditional Waiting Set 에 존재하는 모든 커널 쓰레드들 Wake Up 시키기 (위에서 정의한 wake() 함수 사용할 것)
+        while(waitQueue.nextThread()!=null)
+            wake();          // Conditional Waiting Set 에 존재하는 모든 커널 쓰레드들 Wake Up 시키기 (위에서 정의한 wake() 함수 사용할 것)
                                         
     }
 
