@@ -1,13 +1,10 @@
 package nachos.threads;
 
-import java.util.Vector;
-
-
-//----- import 문 -------
 import nachos.machine.*;
-import java.util.*;         
-//-----------------------                        
 
+//----------------------------
+import java.util.Vector;
+//----------------------------
 
 /**
  * Uses the hardware timer to provide preemption, and to allow threads to sleep
@@ -23,27 +20,25 @@ public class Alarm {
      * alarm.
      */
 
-    private Vector WaitQ = null;                  // asserted Thread 들에 대한 Wating Queue
-                                                // SelfWaitThread 를 해당 Vector 에 저장할 것입니다.
+    private Vector WaitQ = null;            // for waiting Queue for asserted Thread
+                                            // we gonna store SelfWaitThread in this vector...
 
-    public class SelfWaitThread {                 // 'waitUntil(long)' 메소드를 호출한, 쓰레드 클래스
-        private KThread waitThread=null;               // 대기 상태에 있는 쓰레드에 정의 (힌트 : KThread)
-        private long waitTime = 0;                // 쓰레드의 대기 시간에 대한 정의
+    public class SelfWaitThread {                 // thread which itself calls 'waitUntil(long)'
+        private KThread waitThread = null;        // thread in waiting State
+        private long waitTime = 0;                // waiting time
 
-        public SelfWaitThread(KThread thread, long time) {   // 대기 상태로 전환된 쓰레드 정의 (대기 시간 및 대상 쓰레드)
-               waitTime = time;                                
-               waitThread = thread;
+        public SelfWaitThread(KThread thread, long time) {
+               waitTime = time;
+                waitThread = thread;
         }
        
-        public KThread getSelfWaitThread() {return waitThread;}  // 현재 대기중인 커널 쓰레드 반환 메소드 정의
-        public long getSelfWaitTime(){
-            return waitTime;
-        }                                          // 현재 대기중인 커널 쓰레드의 대기시간 반환 메소드(public long getSelfWaitTime()) 정의
+        public KThread getSelfWaitThread() {return waitThread;}  // return him self
+        public long getSelfWaitTime() {return waitTime;}         // return set waiting time
    
     } 
     
-    public Alarm() {         
-        WaitQ=new Vector<SelfWaitThread>(); // asserted Thread 들에 대한 Wating Queue (Vector) 초기화
+    public Alarm() {
+        WaitQ = new Vector();
         Machine.timer().setInterruptHandler(new Runnable() {
                 public void run() { timerInterrupt(); }
             });
@@ -55,26 +50,26 @@ public class Alarm {
      * thread to yield, forcing a context switch if there is another thread
      * that should be run.
      */
-    public void timerInterrupt() {                          // Timer 인터럽트에 대한 Handler 메소드
+    public void timerInterrupt() {
   
-        long now = Machine.timer().getTime();               // Timer 가 작동되고 현재 시점까지의 경과 시간을 가져옴
-        boolean off=Machine.interrupt().disable();          // 인터럽트 Off (힌트 : machine/Interrupt.java 파일 참고)
+        long now = Machine.timer().getTime();    // get Current Time
+        boolean intStatus = Machine.interrupt().disable(); // need to disable Interrupt
            
-        int i=0;     
+        int i=0;
 
-        while(WaitQ.size() > i){                            //  Wating Queue 에 존재하는 모든 쓰레드들 확인
+        while(WaitQ.size() > i){           // we gonna check all thread in waiting set!!
             SelfWaitThread tmp;
             tmp = (SelfWaitThread)WaitQ.elementAt(i);
             
-            if(tmp.getSelfWaitTime()<= now){        // 해당 커널 쓰레드의 대기 시간이 지난 경우, 해당 쓰레드를 대기 상태로 전환시킴 
-               tmp.getSelfWaitThread().ready();             // 해당 쓰레드를 준비 상태로 전환시킴 (Context Switch)
-               WaitQ.removeElementAt(0);                              // 해당 쓰레드를 Waiting Queue 에서 제거시킴
+            if(tmp.getSelfWaitTime()<now){ // if waiting time has passed
+               tmp.getSelfWaitThread().ready(); // put the thread into ready queue
+               WaitQ.removeElementAt(i);        // remove that thread from waiting set
                if(i != 0)i--;
             }
-            i++;                                          
+            i++;                                // check next thread in ready queue
         }
-        Machine.interrupt().restore(off);             // 인터럽트 On
-        KThread.currentThread().yield();                    // 준비 상태로 Context Switch 된 쓰레드를 Run
+        Machine.interrupt().restore(intStatus); // enable interrupt again!!
+        KThread.currentThread().yield();
     }
 
     /**
@@ -91,20 +86,19 @@ public class Alarm {
      *
      * @see     nachos.machine.Timer#getTime()
      */
-
-    public void waitUntil(long x) {                  // x 라는 시간 동안 대기하는 쓰레드 정의하는 메소드
-        
-        long wakeTime = Machine.timer().getTime() + x;     // 대기 상태가 종료되는 시간을 구함
-        boolean off=Machine.interrupt().disable();     // 인터럽트 Off
-        SelfWaitThread tmp = new SelfWaitThread(KThread.currentThread(),wakeTime);     // 대기 상태로 전환된 쓰레드 정의 (SelfWaitThread 객체 생성)
-        WaitQ.add(tmp);    // waitUntil 메소드를 호출한 쓰레드를 Waiting Queue 에 저장 (FIFO 방식)
-        tmp.getSelfWaitThread().sleep();                                    // 해당 쓰레드를 대기 상태로 진입 시킴(힌트 : threads/KThread.java 파일 참고)
-        Machine.interrupt().restore(off);            // 인터럽트 On
+    public void waitUntil(long x) {
+        // for now, cheat just to get something working (busy waiting is bad)
+        long wakeTime = Machine.timer().getTime() + x;     // get due of waiting
+        boolean intStatus = Machine.interrupt().disable(); // need to disable interrupt
+       
+        SelfWaitThread tmp = new SelfWaitThread(KThread.currentThread(),wakeTime);
+        WaitQ.add((SelfWaitThread)tmp);  // put this thread(called waitUntil) to waiting set
+        tmp.getSelfWaitThread().sleep(); // put this thread into waiting set until wakeTime
+        Machine.interrupt().restore(intStatus);  // enable interrupt again!!
         
     }
-
-   public static void alarmTest1() {                 // Alarm 테스트용 코드입니다. 수정하지 마세요.
-       int durations[] = {1000,10*1000, 100*1000};   
+   public static void alarmTest1() {                 // testing alarm
+       int durations[] = {1000,10*1000, 100*1000};   // testing duration
        long t0,t1;
  
        for(int d : durations){
@@ -115,7 +109,7 @@ public class Alarm {
        }
   }
  
-  public static void selfTest() {                    // 테스트 용 코드입니다. 수정하지 마세요.
+  public static void selfTest() {
       alarmTest1();
   }   
 }

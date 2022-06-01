@@ -1,9 +1,8 @@
 package nachos.threads;
-//---------import 문---------
+
 import nachos.machine.*;
 import java.util.Vector;
 import java.util.LinkedList;
-//---------------------------
 
 /**
  * An implementation of condition variables that disables interrupt()s for
@@ -14,8 +13,7 @@ import java.util.LinkedList;
  *
  * @see	nachos.threads.Condition
  */
-
-public class Condition2 {                                                   // Monitor 의 조건 변수 구현 클래스
+public class Condition2 {
     /**
      * Allocate a new condition variable.
      *
@@ -25,7 +23,7 @@ public class Condition2 {                                                   // M
      *				<tt>wake()</tt>, or <tt>wakeAll()</tt>.
      */
     public Condition2(Lock conditionLock) {
-	    this.conditionLock = conditionLock;
+	this.conditionLock = conditionLock;
         CV_WaitThread_List = new Vector();  // init conditional waiting set!!
     }
 
@@ -35,58 +33,54 @@ public class Condition2 {                                                   // M
      * current thread must hold the associated lock. The thread will
      * automatically reacquire the lock before <tt>sleep()</tt> returns.
      */
-    public void sleep() {                                           // 현재 실행중인 커널 쓰레드를 조건 변수 상에서, 대기 상태로 전환시키는 메소드 정의
-	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
-	    
-        conditionLock.release();                                      // 조건 변수에 대한 Lock (Condition Lock) Release (힌트 : threads/Lock.java 참고)
+    public void sleep() {
+	Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+
+	conditionLock.release();
  
         ////////////////////////////////////////////////////////////
-        boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
-        CV_WaitThread_List.add(KThread.currentThread()); // Conditional Waiting Set 에 현재 실행 상태의 쓰레드(힌트 : KThread 클래스 참고) 저장 (FIFO 방식)
-        KThread.currentThread().sleep();                                // 현재 실행 상태의 쓰레드를 대기 상태로 전환시킴 
-        Machine.interrupt().restore(intStatus);                                                 // 인터럽트 다시 On
+        boolean intStatus = Machine.interrupt().disable(); // to provide atomicity, must disable interrupt
+        CV_WaitThread_List.add((KThread)KThread.currentThread()); 
+        // add thread(caller of sleep) to Conditional Waiting set
+        KThread.currentThread().sleep();
+        Machine.interrupt().restore(intStatus);
         //////////////////////////////////////////////////////////////
 
-	    conditionLock.acquire();                             // 조건 변수에 대한 Lock (Condition Lock) Acquire
-    } 
+	conditionLock.acquire();
+    }
 
     /**
      * Wake up at most one thread sleeping on this condition variable. The
      * current thread must hold the associated lock.
      */
-    public void wake() {                                   // 조건 변수 상에서 대기 중인 커널 쓰레드 하나를 Wake Up 시키는 메소드 정의
-	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+    public void wake() {
+	Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        boolean intStatus = Machine.interrupt().disable();              // 인터럽트 Off
-        if(CV_WaitThread_List.size() !=0) {                             // Conditional Waiting Set 에 대기 중인 커널 쓰레드들 확인
-            ((KThread)CV_WaitThread_List.firstElement()).ready();   // Conditional Waiting Set 의 Head 에 위치한 커널 쓰레드(KThread)를 Ready 상태로 전환 (힌트 : threads/KThread.java 참고)
-            CV_WaitThread_List.removeElementAt(0);        
+        boolean intStatus = Machine.interrupt().disable(); // to provide atomicity, must disable interrupt
+        if(CV_WaitThread_List.size() !=0) {                // FCFS Scheduling, ready most longedt waiting thread
+            ((KThread)CV_WaitThread_List.firstElement()).ready(); 
+            CV_WaitThread_List.removeElementAt(0);
         }
-        Machine.interrupt().restore(intStatus);           // 인터럽트 On
+         Machine.interrupt().restore(intStatus);           // enable interrupt again!!   
     }
 
     /**
      * Wake up all threads sleeping on this condition variable. The current
      * thread must hold the associated lock.
      */
-    public void wakeAll() {                            // 조건 변수 상에서 대기 중인 모든 커널 쓰레드들을 Wake Up 시키는 메소드 정의
-	    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+    public void wakeAll() {
+	Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        while(CV_WaitThread_List.size()=0)
-            wake();          // Conditional Waiting Set 에 존재하는 모든 커널 쓰레드들 Wake Up 시키기 (위에서 정의한 wake() 함수 사용할 것)
-                                        
+         while(CV_WaitThread_List.size()!=0)            // wake all threads in conditional waiting set!!!
+            wake();
     }
 
-    private Lock conditionLock;                 // Mutex Lock 정의
-    private Vector CV_WaitThread_List = null;   // Conditional Waiting Set 정의 
-
-    /*
-    Monitor 상의 조건 변수는 2개의 구성 요소(조건 동기 큐 (Conditional Waiting Set), 이진 Mutex Lock (Condition Lock))를 가짐 
-     */
+    private Lock conditionLock;      // lock
+    private Vector CV_WaitThread_List = null;   // conditional waiting set!!!
 
 
-
-    //-------------------------- 조건 변수(Condition2)가 제대로 구현됬는지를 테스팅하는 코드입니다. 수정하지 마세요 ------------------------------------
+    ///////////////////// This Class is for Testing ////////////////////////////
+ 
     private static class InterlockTest {        
         private static Lock lock;              // locker (Mutex)
         private static Condition2 cv;          // condition variable
@@ -121,9 +115,9 @@ public class Condition2 {                                                   // M
         }
    }
      
-   public static void selfTest() { new InterlockTest();}      // 구현된 조건 변수를 테스팅하는 코드입니다. 수정하지 마세요. 
+   public static void selfTest() { new InterlockTest();}      // Testing InterLock!!
 
-   public static void cvTest5() {                             // 구현된 조건 변수를 테스팅하는 코드입니다. 수정하지 마세요.
+   public static void cvTest5() {
       final Lock lock = new Lock();
       final Condition2 empty = new Condition2(lock);
       final LinkedList<Integer> list = new LinkedList<>();
@@ -161,5 +155,4 @@ public class Condition2 {                                                   // M
      consumer.join();
      producer.join();
    }
-   //------------------------------------------------------------------------------------------------------------------------------------------
 }

@@ -1,11 +1,7 @@
 package nachos.threads;
 
-import java.util.Vector;
-
-//----- import 문 -------
 import nachos.machine.*;
-/* 채우세요 */            
-//-----------------------    
+import java.util.Vector;
 
 /**
  * A KThread is a thread that can be used to execute Nachos kernel code. Nachos
@@ -30,15 +26,15 @@ import nachos.machine.*;
  * new KThread(p).fork();
  * </pre></blockquote>
  */
-public class KThread {                                // Nachos 커널 쓰레드 구현
+public class KThread {
     /**
      * Get the current thread.
      *
      * @return	the current thread.
      */
-    public static KThread currentThread() {           // 현재 실행중인 커널 쓰레드를 반환하는 메소드 정의
-        Lib.assertTrue(currentThread != null);
-	    return currentThread;
+    public static KThread currentThread() {
+	Lib.assertTrue(currentThread != null);
+	return currentThread;
     }
     
     /**
@@ -46,23 +42,24 @@ public class KThread {                                // Nachos 커널 쓰레드
      * create an idle thread as well.
      */
     public KThread() {
-        if (currentThread!=null) {                              // 최초로 생성된 쓰레드가 아닌 경우 (힌트 : currentThread 객체 이용하여 작성)
-            tcb = new TCB();                               // 생성하고자 하는 커널 쓰레드에 대한 TCB 할당
+	if (currentThread != null) {      // this thread is not the first thread
+	    tcb = new TCB();
+            // for init of joined_thread//////   
+            joined_thread = new Vector();
+            //////////////////////////////////
+	}	     
+	else {                            // this is the first thread (we called it main thread)
+	    readyQueue = ThreadedKernel.scheduler.newThreadQueue(false);
+            joined_thread = new Vector(); 
+	    readyQueue.acquire(this);	    
 
-            joined_thread=new Vector();                             // joined SET 초기화
-            
-        }	     
-        
-        else {                                                              // 최초로 생성된 쓰레드인 경우
-            readyQueue = ThreadedKernel.scheduler.newThreadQueue(false);    // Ready Queue 생성
-            joined_thread = new Vector();                                   // joined SET 초기화
-            readyQueue.acquire(this);	                                    // Ready Queue에 해당 쓰레드 위치
-            currentThread = this;                                           // 최초로 생성한 쓰레드를 바로 실행토록스케쥴링(currentThread)
-	        tcb = TCB.currentTCB();                                         // 최초의 쓰레드에 대한 TCB 생성
-	        name = "main";                                                  // 최초로 생성된 쓰레드를 Main 쓰레드로 명명
-	        restoreState();
-            createIdleThread();
-        }
+	    currentThread = this;
+	    tcb = TCB.currentTCB();
+	    name = "main";
+	    restoreState();
+             
+	    createIdleThread();
+	}
     }
 
     /**
@@ -141,40 +138,40 @@ public class KThread {                                // Nachos 커널 쓰레드
      * call to the <tt>fork</tt> method) and the other thread (which executes
      * its target's <tt>run</tt> method).
      */
-    public void fork() {                                  // 커널 쓰레드의 Fork 메소드 정의
-        Lib.assertTrue(status == statusNew);
-	    Lib.assertTrue(target != null);
+    public void fork() {
+	Lib.assertTrue(status == statusNew);
+	Lib.assertTrue(target != null);
 	
-	    Lib.debug(dbgThread,
+	Lib.debug(dbgThread,
 		  "Forking thread: " + toString() + " Runnable: " + target);
 
-	    boolean intStatus = Machine.interrupt().disable();
+	boolean intStatus = Machine.interrupt().disable();
 
-	    tcb.start(new Runnable() {
-		    public void run() {
-		        runThread();
-		    }
+	tcb.start(new Runnable() {
+		public void run() {
+		    runThread();
+		}
 	    });
 
-	    ready();
+	ready();
 	
-	    Machine.interrupt().restore(intStatus);
+	Machine.interrupt().restore(intStatus);
     }
 
     private void runThread() {
-	    begin();
-	    target.run();
-	    finish();
+	begin();
+	target.run();
+	finish();
     }
 
     private void begin() {
-	    Lib.debug(dbgThread, "Beginning thread: " + toString());
+	Lib.debug(dbgThread, "Beginning thread: " + toString());
 	
-	    Lib.assertTrue(this == currentThread);
+	Lib.assertTrue(this == currentThread);
 
-	    restoreState();
+	restoreState();
 
-	    Machine.interrupt().enable();
+	Machine.interrupt().enable();
     }
 
     /**
@@ -188,18 +185,19 @@ public class KThread {                                // Nachos 커널 쓰레드
      * delete this thread.
      */
     public static void finish() {
-	    Lib.debug(dbgThread, "Finishing thread: " + currentThread.toString());
+	Lib.debug(dbgThread, "Finishing thread: " + currentThread.toString());
 	
-	    Machine.interrupt().disable();
+	Machine.interrupt().disable();
 
-	    Machine.autoGrader().finishingCurrentThread();
+	Machine.autoGrader().finishingCurrentThread();
 
-	    Lib.assertTrue(toBeDestroyed == null);
-	    toBeDestroyed = currentThread;
+	Lib.assertTrue(toBeDestroyed == null);
+	toBeDestroyed = currentThread;
 
-	    currentThread.status = statusFinished;
+
+	currentThread.status = statusFinished;
 	
-	    sleep();
+	sleep();
     }
 
     /**
@@ -219,17 +217,17 @@ public class KThread {                                // Nachos 커널 쓰레드
      * called with interrupts disabled.
      */
     public static void yield() {
-	    Lib.debug(dbgThread, "Yielding thread: " + currentThread.toString());
+	Lib.debug(dbgThread, "Yielding thread: " + currentThread.toString());
 	
-	    Lib.assertTrue(currentThread.status == statusRunning);
+	Lib.assertTrue(currentThread.status == statusRunning);
 	
-	    boolean intStatus = Machine.interrupt().disable();
+	boolean intStatus = Machine.interrupt().disable();
 
-	    currentThread.ready();
+	currentThread.ready();
 
-	    runNextThread();
+	runNextThread();
 	
-	    Machine.interrupt().restore(intStatus);
+	Machine.interrupt().restore(intStatus);
     }
 
     /**
@@ -244,14 +242,14 @@ public class KThread {                                // Nachos 커널 쓰레드
      * scheduled this thread to be destroyed by the next thread to run.
      */
     public static void sleep() {
-	    Lib.debug(dbgThread, "Sleeping thread: " + currentThread.toString());
+	Lib.debug(dbgThread, "Sleeping thread: " + currentThread.toString());
 	
-	    Lib.assertTrue(Machine.interrupt().disabled());
+	Lib.assertTrue(Machine.interrupt().disabled());
 
-	    if (currentThread.status != statusFinished)
-	        currentThread.status = statusBlocked;
+	if (currentThread.status != statusFinished)
+	    currentThread.status = statusBlocked;
 
-	    runNextThread();
+	runNextThread();
     }
 
     /**
@@ -259,16 +257,16 @@ public class KThread {                                // Nachos 커널 쓰레드
      * ready queue.
      */
     public void ready() {
-	    Lib.debug(dbgThread, "Ready thread: " + toString());
+	Lib.debug(dbgThread, "Ready thread: " + toString());
 	
-	    Lib.assertTrue(Machine.interrupt().disabled());
-	    Lib.assertTrue(status != statusReady);
+	Lib.assertTrue(Machine.interrupt().disabled());
+	Lib.assertTrue(status != statusReady);
 	
-	    status = statusReady;
-	    if (this != idleThread)
-	        readyQueue.waitForAccess(this);
+	status = statusReady;
+	if (this != idleThread)
+	    readyQueue.waitForAccess(this);
 	
-	    Machine.autoGrader().readyThread(this);
+	Machine.autoGrader().readyThread(this);
     }
 
 
@@ -279,19 +277,17 @@ public class KThread {                                // Nachos 커널 쓰레드
      * thread.
      */
 
-    public void join() {                                              // join 을 호출한 KThread(커널 쓰레드) 종료될 때까지 대기시키는 메소드 정의
-                                                                      // 즉, B 라는 KThread 에서, A.join()을 하는 경우, B Thread 는 A(Caller Thread) 가 종료할 때까지 대기  
-	    Lib.debug(dbgThread, "Joining to thread: " + toString());
+    public void join() {    // Caller Thread wait for this thread to finish.
+	Lib.debug(dbgThread, "Joining to thread: " + toString());
         Lib.assertTrue(this != currentThread);
  
-        if(this.status!=statusFinished) return;                                     // Caller Thread가 이미 종료 상태인 경우, 대기 상태 진입 필요 없이 바로 리턴 
-        
-        //---------------------만약, join 해야할 쓰레드가 종료되지 않음 경우, 다음 단계로 진입-----------------------//
-        boolean off=Machine.interrupt().disable();                                  // 인터럽트 끄기
-        joined_thread.add(0, currentThread);                                  // 현재 실행 상태의 커널 쓰레드를 joined_set 에 저장 (FIFO 방식으로 저장)               
-        currentThread.sleep();                             //  현재 실행 상태의 커널 쓰레드를 대기 상태로 전환
-        Machine.interrupt().restore(off);            // 인터럽트 켜기  
-        //---------------------------------------------------------------------------------------------------------//
+        if(this.status == statusFinished) return;  // if joined thread finish, just return
+        // if joined thread not finish... We go to next phase///////
+        boolean intStatus = Machine.interrupt().disable(); // need to disable interrupt
+        joined_thread.addElement((KThread)currentThread);  // add this thread to joined set
+                                             
+        currentThread.sleep();                           // keep caller(currentThread) thread sleep(wait)
+        Machine.interrupt().restore(intStatus);         // enable interrupt again!!  
     }
 
 
@@ -308,16 +304,16 @@ public class KThread {                                // Nachos 커널 쓰레드
      * Note that <tt>ready()</tt> never adds the idle thread to the ready set.
      */
     private static void createIdleThread() {
-	    Lib.assertTrue(idleThread == null);
+	Lib.assertTrue(idleThread == null);
 	
-	    idleThread = new KThread(new Runnable() {
-	        public void run() { while (true) yield(); }
-	    });
-	    idleThread.setName("idle");
+	idleThread = new KThread(new Runnable() {
+	    public void run() { while (true) yield(); }
+	});
+	idleThread.setName("idle");
 
-	    Machine.autoGrader().setIdleThread(idleThread);
+	Machine.autoGrader().setIdleThread(idleThread);
 	
-	    idleThread.fork();
+	idleThread.fork();
     }
     
     /**
@@ -325,11 +321,11 @@ public class KThread {                                // Nachos 커널 쓰레드
      * using <tt>run()</tt>.
      */
     private static void runNextThread() {
-	    KThread nextThread = readyQueue.nextThread();
-	    if (nextThread == null)
-	        nextThread = idleThread;
+	KThread nextThread = readyQueue.nextThread();
+	if (nextThread == null)
+	    nextThread = idleThread;
 
-	    nextThread.run();
+	nextThread.run();
     }
 
     /**
@@ -353,53 +349,52 @@ public class KThread {                                // Nachos 커널 쓰레드
      *				thread.
      */
     private void run() {
-	    Lib.assertTrue(Machine.interrupt().disabled());
+	Lib.assertTrue(Machine.interrupt().disabled());
 
-	    Machine.yield();
+	Machine.yield();
 
-	    currentThread.saveState();
+	currentThread.saveState();
 
-	    Lib.debug(dbgThread, "Switching from: " + currentThread.toString()
+	Lib.debug(dbgThread, "Switching from: " + currentThread.toString()
 		  + " to: " + toString());
 
-	    currentThread = this;
+	currentThread = this;
 
-	    tcb.contextSwitch();
+	tcb.contextSwitch();
 
-	    currentThread.restoreState();
+	currentThread.restoreState();
     }
 
     /**
      * Prepare this thread to be run. Set <tt>status</tt> to
      * <tt>statusRunning</tt> and check <tt>toBeDestroyed</tt>.
      */
-    protected void restoreState() {                                          // 해당 커널 쓰레드를 실행상태로 전환 (따라서, currentThread == this)시키는 메소드 정의
-	    Lib.debug(dbgThread, "Running thread: " + currentThread.toString());
+    protected void restoreState() {
+	Lib.debug(dbgThread, "Running thread: " + currentThread.toString());
 	
-	    Lib.assertTrue(Machine.interrupt().disabled());
-	    Lib.assertTrue(this == currentThread);
-	    Lib.assertTrue(tcb == TCB.currentTCB());
+	Lib.assertTrue(Machine.interrupt().disabled());
+	Lib.assertTrue(this == currentThread);
+	Lib.assertTrue(tcb == TCB.currentTCB());
 
-	    Machine.autoGrader().runningThread(this);
+	Machine.autoGrader().runningThread(this);
 	
-	    status=statusRunning;             // 현재 쓰레드의 상태를 실행 상태로 전환
+	status = statusRunning;
 
-	    if (toBeDestroyed != null) {    // 종료되어야 할 커널 쓰레드가 있는지 확인
-        
+	if (toBeDestroyed != null) {
+
             while(!toBeDestroyed.joined_thread.isEmpty() && !(toBeDestroyed.getName().equals("main"))) {
-                // 종료되어야할 커널 쓰레드는 자신을 기다리는 쓰레드(joined SET)들이 있는지 확인 
-                // 있다면, 반드시, 해당 커널 쓰레드의 joined SET 에 있는 모든 쓰레드들을 wake up 해줘야 함
+             // Before this thread to be terminated, need to wake up all thread in join set
              
-                KThread tmpThread;                                            
-                tmpThread = (KThread)toBeDestroyed.joined_thread.get(0);     // joined SET 에서 Head 위치의 커널 쓰레드를 가져옴
-                toBeDestroyed.joined_thread.remove(0);                       // joined SET 에서 Head 위치의 커널 쓰레드를 가져옴
-                tmpThread.ready();                                           // joined SET 에서 Head 위치의 커널 쓰레드를 가져와 준비 상태로 전환
+             KThread tmpThread;                                            
+             tmpThread = (KThread)toBeDestroyed.joined_thread.get(0);
+             toBeDestroyed.joined_thread.remove(0); 
+             tmpThread.ready();  // get thread in join set and get them to ready queue
             }
  
-	        toBeDestroyed.tcb.destroy();                                   // 종료되어야 할 커널 쓰레드의 TCB 제거 (힌트 machine/TCB.java 참고)
-	        toBeDestroyed.tcb = null;
-	        toBeDestroyed = null;
-	    }
+	    toBeDestroyed.tcb.destroy();
+	    toBeDestroyed.tcb = null;
+	    toBeDestroyed = null;
+	}
     }
 
     /**
@@ -407,50 +402,50 @@ public class KThread {                                // Nachos 커널 쓰레드
      * need to do anything here.
      */
     protected void saveState() {
-	    Lib.assertTrue(Machine.interrupt().disabled());
-	    Lib.assertTrue(this == currentThread);
+	Lib.assertTrue(Machine.interrupt().disabled());
+	Lib.assertTrue(this == currentThread);
     }
 
-    private static class PingTest implements Runnable { // KThread join 을 제대로 구현했는지 확인하는 Test 코드입니다. 수정하지마세요.
-	    PingTest(int which) {
-	        this.which = which;
-	    }
+    private static class PingTest implements Runnable {
+	PingTest(int which) {
+	    this.which = which;
+	}
 	
-	    public void run() {
-	        for (int i=0; i<5; i++) {
-		        System.out.println("*** thread " + which + " looped "
-                + i + " times");
-                currentThread.yield();
-	        }
+	public void run() {
+	    for (int i=0; i<5; i++) {
+		System.out.println("*** thread " + which + " looped "
+				   + i + " times");
+		currentThread.yield();
 	    }
-        
-        private int which;
+	}
+
+	private int which;
     }
 
     /**
      * Tests whether this module is working.
      */
-    public static void selfTest() {                      // KThread join 을 제대로 구현했는지 확인하는 Test 코드입니다. 수정하지마세요.
-	    Lib.debug(dbgThread, "Enter KThread.selfTest");
+    public static void selfTest() {
+	Lib.debug(dbgThread, "Enter KThread.selfTest");
 	
-	    new KThread(new PingTest(1)).setName("forked thread").fork();
-	    new PingTest(0).run();
+	new KThread(new PingTest(1)).setName("forked thread").fork();
+	new PingTest(0).run();
 
         KThread.joinTest1();          // this is a test code for join test
     }
 
-    private static void joinTest1() {                    // KThread join 을 제대로 구현했는지 확인하는 Test 코드입니다. 수정하지마세요.
+    private static void joinTest1() {
         KThread child1 = new KThread(new Runnable() {
-            public void run() { System.out.println("I (heart) Nachos!"); }
+              public void run() { System.out.println("I (heart) Nachos!"); }
         });      // for testing thread which has routine of printing "I (heart) Nachos!"
 
         child1.setName("child1").fork();    // create this thread and run it!!
-        
-        for(int i=0; i<5;i++){
-            System.out.println("busy...");
-            KThread.currentThread().yield();
-        } 
-        
+ 
+       for(int i=0; i<5;i++){
+          System.out.println("busy...");
+	  KThread.currentThread().yield();
+       } 
+
         child1.join();                       // now testing thread(parent of child1) joins child1
         System.out.println("After Joining, child1 should be finished");
         System.out.println("is it? " + (child1.status==statusFinished));
@@ -466,11 +461,11 @@ public class KThread {                                // Nachos 커널 쓰레드
      */
     public Object schedulingState = null;
 
-    private static final int statusNew = 0;                // 커널 쓰레드 : 생성 상태 
-    private static final int statusReady = 1;              // 커널 쓰레드 : 준비 상태 
-    private static final int statusRunning = 2;            // 커널 쓰레드 : 실행 상태 
-    private static final int statusBlocked = 3;            // 커널 쓰레드 : 대기 상태 
-    private static final int statusFinished = 4;           // 커널 쓰레드의 종료 상태 
+    private static final int statusNew = 0;
+    private static final int statusReady = 1;
+    private static final int statusRunning = 2;
+    private static final int statusBlocked = 3;
+    private static final int statusFinished = 4;
 
     /**
      * The status of this thread. A thread can either be new (not yet forked),
@@ -478,10 +473,10 @@ public class KThread {                                // Nachos 커널 쓰레드
      * on the ready queue and not running).
      */
 
-    private int status = statusNew;                      // 현재(this) 커널 쓰레드의 상태
+     private int status = statusNew;
     private String name = "(unnamed thread)";
     private Runnable target;
-    private TCB tcb;                                     // 현재 실행 중인 커널 쓰레드의 TCB
+    private TCB tcb;
 
     /**
      * Unique identifer for this thread. Used to deterministically compare
@@ -491,9 +486,9 @@ public class KThread {                                // Nachos 커널 쓰레드
     /** Number of times the KThread constructor was called. */
     private static int numCreated = 0;
 
-    private static ThreadQueue readyQueue=null;                                      // Ready 상태의 쓰레드들에 대한 큐(ThreadQueue 클래스 이용) 정의
-    private static KThread currentThread = null;         // 현재 스케쥴링된, 실행 상태의 커널 쓰레드(KThread)            
+    private static ThreadQueue readyQueue = null;
+    private static KThread currentThread = null;
     private static KThread toBeDestroyed = null;
     private static KThread idleThread = null;
-    private Vector joined_thread=null;                   // 해당 커널 쓰레드(this)가 끝날때까지 대기상태에 있는 커널 쓰레드들에 대한 큐(joined SET) 정의
+    private Vector joined_thread=null;
 }
